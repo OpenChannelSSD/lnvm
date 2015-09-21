@@ -1,5 +1,18 @@
 # Manage your LightNVM-compatible SSD
 
+### Examples
+- General information from LightNVM kernel module
+  - ```lnvm info```
+- List available devices
+  - ```lnvm devices```
+- Init target (tgt0) with (nvme0n1) device using rrpc on lun 0.
+  - ``` lnvm create -d nvme0n1 -n tgt0 -t rrpc```
+- Init target (test0) with (nulln0) device using rrpc on luns [0->3].
+  - ```lnvm create -d nulln0 -n test0 -t rrpc -o 0:3```
+- Remove target (tgt0).
+  - ```lnvm remove tgt0```
+  - ```lnvm remove -n tgt0```
+
 ### How to use
 
 ```
