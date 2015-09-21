@@ -46,6 +46,8 @@ Example:
 ```
 ### Compile
 
-git clone https://github.com/OpenChannelSSD/lightnvm-adm.git
-cd lightnvm-adm
-make
+```
+  git clone https://github.com/OpenChannelSSD/lightnvm-adm.git
+  cd lightnvm-adm
+  make
+```
