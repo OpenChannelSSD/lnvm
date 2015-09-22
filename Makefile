@@ -1,6 +1,6 @@
 CFLAGS := -m64 -std=gnu99 -O2 -g -pthread -D_GNU_SOURCE -Wall
 LDFLAGS := -lm
-EXEC = ladm
+EXEC = lnvm
 INSTALL ?= install
 
 # For the uapi header file we priorize this way:
@@ -15,13 +15,13 @@ endif
 
 default: $(EXEC)
 
-ladm: ladm.c $(LIGHTNVM_HEADER)
-	$(CC) $(CFLAGS) ladm.c $(LDFLAGS) -o $(EXEC)
+lnvm: lnvm.c $(LIGHTNVM_HEADER)
+	$(CC) $(CFLAGS) lnvm.c $(LDFLAGS) -o $(EXEC)
 
 doc: $(EXEC)
 	$(MAKE) -C Documentation
 
-all: ladm doc
+all: lnvm doc
 
 clean:
 	rm -f $(EXEC) *.o *~ a.out
