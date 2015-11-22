@@ -31,6 +31,6 @@ clobber: clean
 
 install: default
 	$(MAKE) -C Documentation install
-	$(INSTALL) -m 755 nvme /usr/local/bin
+	$(INSTALL) -m 755 $(EXEC) /usr/local/bin
 
 .PHONY: default all doc clean clobber install
