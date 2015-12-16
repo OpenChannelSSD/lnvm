@@ -15,6 +15,7 @@ enum cmdtypes {
 	LIGHTNVM_DEVS,
 	LIGHTNVM_CREATE,
 	LIGHTNVM_REMOVE,
+	LIGHTNVM_DEV_INIT,
 };
 
 struct arguments
@@ -24,6 +25,7 @@ struct arguments
 	char *tgtname;
 	char *tgttype;
 	char *devname;
+	char *mmtype;
 
 	int lun_begin;
 	int lun_end;
@@ -109,6 +111,33 @@ static int remove_tgt(int fd, struct arguments *args)
 	ret = ioctl(fd, NVM_DEV_REMOVE, &c);
 	if (ret)
 		fprintf(stderr, "remove failed. See dmesg.\n");
+
+	return ret;
+}
+
+static int dev_init(int fd, struct arguments *args)
+{
+	struct nvm_ioctl_dev_init init;
+	int ret;
+
+	memset(&init, 0, sizeof(struct nvm_ioctl_dev_init));
+
+	strncpy(init.dev, args->devname, DISK_NAME_LEN);
+
+	ret = ioctl(fd, NVM_DEV_INIT, &init);
+	switch (errno) {
+	case EINVAL:
+		printf("Initialization failed\n");
+		break;
+	case EEXIST:
+		printf("Device has already been initialized.\n");
+		break;
+	case 0:
+		break;
+	default:
+		printf("Unknown error occurred (%d)\n", errno);
+		break;
+	}
 
 	return ret;
 }
@@ -276,10 +305,87 @@ static void cmd_remove(struct argp_state *state, struct arguments *args)
 	state->next += argc - 1;
 }
 
+static struct argp_option opt_dev_init[] =
+{
+	{"device", 'd', "DEVICE", 0, "LightNVM device e.g. nvme0n1"},
+	{"mmname", 'm', "MMNAME", 0, "Media Manager. Default: gennvm"},
+	{0}
+};
+
+static char doc_dev_init[] =
+		"\n\vExamples:\n"
+		" Init nvme0n1 device\n"
+		"  lnvm init -d nvme0n1\n"
+		" Init nvme0n1 device with other media manager\n"
+		"  lnvm init -d nvne0n1 -m other\n";
+
+static error_t parse_dev_init_opt(int key, char *arg, struct argp_state *state)
+{
+	struct arguments *args = state->input;
+
+	switch (key) {
+	case 'd':
+		if (!arg || args->devname)
+			argp_usage(state);
+		if (strlen(arg) > DISK_NAME_LEN) {
+			printf("Argument too long\n");
+			argp_usage(state);
+		}
+		args->devname = arg;
+		args->arg_num++;
+		break;
+	case 'm':
+		if (!arg || args->mmtype)
+			argp_usage(state);
+		if (strlen(arg) > NVM_MMTYPE_LEN) {
+			printf("Argument too long\n");
+			argp_usage(state);
+		}
+		args->mmtype = arg;
+		args->arg_num++;
+		break;
+	case ARGP_KEY_ARG:
+		if (args->arg_num > 2)
+			argp_usage(state);
+		break;
+	case ARGP_KEY_END:
+		if (args->arg_num < 1)
+			argp_usage(state);
+		break;
+	default:
+		return ARGP_ERR_UNKNOWN;
+	}
+
+	return 0;
+}
+
+static struct argp argp_dev_init = {opt_dev_init, parse_dev_init_opt,
+							0, doc_dev_init};
+
+static void cmd_dev_init(struct argp_state *state, struct arguments *args)
+{
+	int argc = state->argc - state->next + 1;
+	char** argv = &state->argv[state->next - 1];
+	char* argv0 = argv[0];
+
+	argv[0] = malloc(strlen(state->name) + strlen(" init") + 1);
+	if(!argv[0])
+		argp_failure(state, 1, ENOMEM, 0);
+
+	sprintf(argv[0], "%s init", state->name);
+
+	argp_parse(&argp_dev_init, argc, argv, ARGP_IN_ORDER, &argc, args);
+
+	free(argv[0]);
+	argv[0] = argv0;
+	state->next += argc - 1;
+}
+
 const char *argp_program_version = "1.0";
 const char *argp_program_bug_address = "Matias Bjørling <mb@lightnvm.io>";
 static char args_doc_global[] =
 		"\nSupported commands are:\n"
+		"  init         Initialize device for LightNVM\n"
 		"  devices      List available LightNVM devices.\n"
 		"  info         List general info and target engines\n"
 		"  create       Create target on top of a specific device\n"
@@ -301,6 +407,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 		} else if (strcmp(arg, "remove") == 0) {
 			args->cmdtype = LIGHTNVM_REMOVE;
 			cmd_remove(state, args);
+		} else if (strcmp(arg, "init") == 0) {
+			args->cmdtype = LIGHTNVM_DEV_INIT;
+			cmd_dev_init(state, args);
 		}
 		break;
 	default:
@@ -340,6 +449,9 @@ int main(int argc, char **argv)
 		break;
 	case LIGHTNVM_REMOVE:
 		remove_tgt(fd, &args);
+		break;
+	case LIGHTNVM_DEV_INIT:
+		dev_init(fd, &args);
 		break;
 	default:
 		printf("No valid command given.\n");
