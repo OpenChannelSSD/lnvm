@@ -123,6 +123,10 @@ static int dev_init(int fd, struct arguments *args)
 	memset(&init, 0, sizeof(struct nvm_ioctl_dev_init));
 
 	strncpy(init.dev, args->devname, DISK_NAME_LEN);
+	if (args->mmtype)
+		strncpy(init.mmtype, args->mmtype, NVM_MMTYPE_LEN);
+	else
+		strncpy(init.mmtype, "gennvm", NVM_MMTYPE_LEN);
 
 	ret = ioctl(fd, NVM_DEV_INIT, &init);
 	switch (errno) {
