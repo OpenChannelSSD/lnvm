@@ -16,6 +16,7 @@ enum cmdtypes {
 	LIGHTNVM_CREATE,
 	LIGHTNVM_REMOVE,
 	LIGHTNVM_DEV_INIT,
+	LIGHTNVM_DEV_FACTORY,
 };
 
 struct arguments
@@ -29,6 +30,10 @@ struct arguments
 
 	int lun_begin;
 	int lun_end;
+
+	int erase_only;
+	int hostmarks;
+	int bbmarks;
 };
 
 static int list_info(int fd)
@@ -145,6 +150,37 @@ static int dev_init(int fd, struct arguments *args)
 
 	return ret;
 }
+
+static int dev_factory(int fd, struct arguments *args)
+{
+	struct nvm_ioctl_dev_factory fact;
+	int ret;
+
+	memset(&fact, 0, sizeof(struct nvm_ioctl_dev_factory));
+
+	strncpy(fact.dev, args->devname, DISK_NAME_LEN);
+	if (args->erase_only)
+		fact.flags |= NVM_FACTORY_ERASE_ONLY_USER;
+	if (args->hostmarks)
+		fact.flags |= NVM_FACTORY_RESET_HOST_BLKS;
+	if (args->bbmarks)
+		fact.flags |= NVM_FACTORY_RESET_GRWN_BBLKS;
+
+	ret = ioctl(fd, NVM_DEV_FACTORY, &fact);
+	switch (errno) {
+	case EINVAL:
+		printf("Factory reset failed.\n");
+		break;
+	case 0:
+		break;
+	default:
+		printf("Unknown error occurred (%d)\n", errno);
+		break;
+	}
+
+	return ret;
+}
+
 
 static struct argp_option opt_create[] =
 {
@@ -385,6 +421,97 @@ static void cmd_dev_init(struct argp_state *state, struct arguments *args)
 	state->next += argc - 1;
 }
 
+static struct argp_option opt_dev_factory[] =
+{
+	{"device", 'd', "DEVICE", 0, "LightNVM device e.g. nvme0n1"},
+	{"erase_only_marked", 'e', 0, 0, "Only erase marked blocks. Default: all blocks"},
+	{"hostmarks", 'h', 0, 0, "Mark host-side blocks free. Default: keep"},
+	{"bbmarks", 'b', 0, 0, "Mark grown bad blocks free. Default: keep"},
+	{0}
+};
+
+static char doc_dev_factory[] =
+		"\n\vExamples:\n"
+		" Erase disk, but keep LightNVM disk format\n"
+		"  lnvm factory -d nvme0n1\n"
+		" Erase disk\n"
+		"  lnvm factory -d nvme0n1 -h\n"
+		" Erase disk and reset grown bad list as well\n"
+		"  lnvm factory -d nvme0n1 -h -b\n"
+		" Only erase LightNVM disk format related blocks\n"
+		"  lnvm factory -d nvme0n1 -h -e\n";
+
+
+static error_t parse_dev_factory_opt(int key, char *arg, struct argp_state *state)
+{
+	struct arguments *args = state->input;
+
+	switch (key) {
+	case 'd':
+		if (!arg || args->devname)
+			argp_usage(state);
+		if (strlen(arg) > DISK_NAME_LEN) {
+			printf("Argument too long\n");
+			argp_usage(state);
+		}
+		args->devname = arg;
+		args->arg_num++;
+		break;
+	case 'e':
+		if (args->erase_only)
+			argp_usage(state);
+		args->erase_only = 1;
+		args->arg_num++;
+		break;
+	case 'h':
+		if (args->hostmarks)
+			argp_usage(state);
+		args->hostmarks = 1;
+		args->arg_num++;
+		break;
+	case 'b':
+		if (args->bbmarks)
+			argp_usage(state);
+		args->bbmarks = 1;
+		args->arg_num++;
+		break;
+	case ARGP_KEY_ARG:
+		if (args->arg_num > 4)
+			argp_usage(state);
+		break;
+	case ARGP_KEY_END:
+		if (args->arg_num < 1)
+			argp_usage(state);
+		break;
+	default:
+		return ARGP_ERR_UNKNOWN;
+	}
+
+	return 0;
+}
+
+static struct argp argp_dev_factory = {opt_dev_factory, parse_dev_factory_opt,
+							0, doc_dev_factory};
+
+static void cmd_dev_factory(struct argp_state *state, struct arguments *args)
+{
+	int argc = state->argc - state->next + 1;
+	char** argv = &state->argv[state->next - 1];
+	char* argv0 = argv[0];
+
+	argv[0] = malloc(strlen(state->name) + strlen(" factory") + 1);
+	if(!argv[0])
+		argp_failure(state, 1, ENOMEM, 0);
+
+	sprintf(argv[0], "%s factory", state->name);
+
+	argp_parse(&argp_dev_factory, argc, argv, ARGP_IN_ORDER, &argc, args);
+
+	free(argv[0]);
+	argv[0] = argv0;
+	state->next += argc - 1;
+}
+
 const char *argp_program_version = "1.0";
 const char *argp_program_bug_address = "Matias Bjørling <mb@lightnvm.io>";
 static char args_doc_global[] =
@@ -393,7 +520,8 @@ static char args_doc_global[] =
 		"  devices      List available LightNVM devices.\n"
 		"  info         List general info and target engines\n"
 		"  create       Create target on top of a specific device\n"
-		"  remove       Remove target from device";
+		"  remove       Remove target from device\n"
+		"  factory      Reset device to factory state";
 
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
 {
@@ -414,6 +542,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 		} else if (strcmp(arg, "init") == 0) {
 			args->cmdtype = LIGHTNVM_DEV_INIT;
 			cmd_dev_init(state, args);
+		} else if (strcmp(arg, "factory") == 0) {
+			args->cmdtype = LIGHTNVM_DEV_FACTORY;
+			cmd_dev_factory(state, args);
 		}
 		break;
 	default:
@@ -456,6 +587,9 @@ int main(int argc, char **argv)
 		break;
 	case LIGHTNVM_DEV_INIT:
 		dev_init(fd, &args);
+		break;
+	case LIGHTNVM_DEV_FACTORY:
+		dev_factory(fd, &args);
 		break;
 	default:
 		printf("No valid command given.\n");
