@@ -1,0 +1,5 @@
+lnvm (0.1-1) trusty; urgency=low
+
+  * Initial release (Closes: #1)
+
+ -- Matias Bjørling <m@bjorling.me>  Tue, 19 Jan 2016 12:50:18 +0100

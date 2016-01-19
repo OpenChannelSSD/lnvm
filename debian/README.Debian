@@ -1,0 +1,20 @@
+lnvm for Debian
+---------------
+
+Availability
+------------
+
+Information about the LightNVM subsystem can be found at http://lightnvm.io
+
+Upstream
+--------
+
+Kernel upstream is available here:
+
+  https://github.com/OpenChannelSSD/linux
+
+and source for lnvm package is accessed from
+
+  https://github.com/OpenChannelSSD/lnvm
+
+ -- Matias Bjørling <m@bjorling.me>  Tue, 19 Jan 2016 12:50:18 +0100

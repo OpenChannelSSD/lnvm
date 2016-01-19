@@ -1,0 +1,15 @@
+Source: lnvm
+Section: admin
+Priority: optional
+Maintainer: Matias Bjørling <m@bjorling.me>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.6
+Homepage: https://lightnvm.io
+Vcs-Git: https://github.com/OpenChannelSSD/lnvm.git
+Vcs-Browser: https://github.com/OpenChannelSSD/lnvm
+
+Package: lnvm
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: tool to manage lightnvm devices aka Open-Channel SSDs.
+ cli tool to manage Open-Channel SSDs that supports the LightNVM subsystem.
