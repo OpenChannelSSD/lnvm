@@ -3,7 +3,7 @@ Upstream-Name: lnvm
 Source: https://github.com/OpenChannelSSD/lnvm
 
 Files: *
-Copyright: 2015 Matias Bj}rling <m@bjorling.me>
+Copyright: 2015 Matias Bjørling <m@bjorling.me>
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
