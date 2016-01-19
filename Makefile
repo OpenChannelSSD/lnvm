@@ -2,6 +2,9 @@ CFLAGS := -m64 -std=gnu99 -O2 -g -pthread -D_GNU_SOURCE -Wall
 LDFLAGS := -lm
 EXEC = lnvm
 INSTALL ?= install
+DESTDIR =
+PREFIX ?= /usr/local
+SBINDIR = $(PREFIX)/sbin
 
 # For the uapi header file we priorize this way:
 # 1. Use /usr/src/$(uname -r)/include/uapi/linux/lightnvm.h
@@ -29,8 +32,13 @@ clean:
 
 clobber: clean
 
-install: default
-	$(MAKE) -C Documentation install
-	$(INSTALL) -m 755 $(EXEC) /usr/local/bin
+install-man:
+		$(MAKE) -C Documentation install-no-build
+
+install-bin: default
+	$(INSTALL) -d $(DESTDIR)$(SBINDIR)
+	$(INSTALL) -m 755 lnvm $(DESTDIR)$(SBINDIR)
+
+install: install-bin install-man
 
 .PHONY: default all doc clean clobber install
