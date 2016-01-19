@@ -32,13 +32,10 @@ clean:
 
 clobber: clean
 
-install-man:
-		$(MAKE) -C Documentation install-no-build
-
 install-bin: default
 	$(INSTALL) -d $(DESTDIR)$(SBINDIR)
 	$(INSTALL) -m 755 lnvm $(DESTDIR)$(SBINDIR)
 
-install: install-bin install-man
+install: install-bin
 
 .PHONY: default all doc clean clobber install
