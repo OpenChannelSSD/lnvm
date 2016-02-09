@@ -1,4 +1,6 @@
-# Manage your LightNVM-compatible SSD
+# Manage your LightNVM Solid State Drives
+
+Tool to adminstrate and configure your drives.
 
 ### Examples
 - General information from LightNVM kernel module
