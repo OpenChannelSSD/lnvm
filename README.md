@@ -2,6 +2,8 @@
 
 Tool to manage and configure your drives.
 
+Note that the same commands are available using the nvme-cli tool.
+
 ### Examples
 - General information from LightNVM kernel module
   - ```lnvm info```
